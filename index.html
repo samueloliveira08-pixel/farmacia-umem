@@ -143,6 +143,9 @@ tr:hover td{background:rgba(74,103,65,.1)!important;}
 @media(max-width:600px){th,td{padding:7px 9px;font-size:12px;}.grid2{grid-template-columns:1fr;}#content{padding:14px 10px;}.card{padding:14px;}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="supabase.js"></script>
 </head>
 <body>
 
@@ -252,6 +255,7 @@ function doLogin(){
     sessionStorage.setItem('farm_user', JSON.stringify({id:1,nome:'SG S.OLIVEIRA',isAdmin:true}));
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='block';
+    testarConexao();
     carregar(); render(); setTimeout(verificarVencimentos, 800);
     return;
   }
@@ -848,19 +852,36 @@ function abrirCadastro(){
     '<div class="row-btns"><button class="btn-primary" onclick="salvarCadastro()">Enviar Solicitação</button><button class="btn-ghost" onclick="closeModal()">Cancelar</button></div>'
   );
 }
-function salvarCadastro(){
-  const nome=document.getElementById('cad_nome').value.trim();
-  const posto_grad=document.getElementById('cad_posto_grad').value.trim();
-  const tel=document.getElementById('cad_tel').value.trim();
-  const email=document.getElementById('cad_email').value.trim();
-  if(!nome||!tel){toast('Preencha nome e telefone','var(--warn)');return;}
-  // Save to DB pending list
-  if(!DB.cadastros) DB.cadastros=[];
-  DB.cadastros.push({id:Date.now(),nome,posto_grad,tel,email,data:new Date().toLocaleDateString('pt-BR'),status:'Pendente'});
-  salvar();
-  closeModal();
-  toast('✅ Solicitação enviada! Aguarde aprovação do administrador.');
-}
+async function salvarCadastro(){
+
+    const nome = document.getElementById('cad_nome').value.trim();
+    const posto_grad = document.getElementById('cad_posto_grad').value.trim();
+    const tel = document.getElementById('cad_tel').value.trim();
+    const email = document.getElementById('cad_email').value.trim();
+
+    if(!nome || !tel){
+        toast('Preencha nome e telefone','var(--warn)');
+        return;
+    }
+
+    const { error } = await supabase
+        .from('perfis')
+        .insert([{
+            nome,
+            posto_grad,
+            telefone: tel,
+            email,
+            status: 'Pendente'
+        }]);
+
+    if(error){
+        toast(error.message,'var(--danger)');
+        return;
+    }
+
+    closeModal();
+    toast('✅ Solicitação enviada!');
+};
 
 
 function renderUsuarios(){
